@@ -1,0 +1,18 @@
+# pre-commit framework config (https://pre-commit.com)
+#
+#   pip install pre-commit && pre-commit install
+#
+# NOTE: `pre-commit install` refuses to run when git `core.hooksPath` is set
+# (globally or locally). In that case use `make hook-install` instead, which
+# links scripts/pre-commit-orca-secrets.sh into .git/hooks. See DEMO.md.
+repos:
+  - repo: local
+    hooks:
+      - id: orca-secrets
+        name: Orca Secret Detection (orca-cli secrets pre-commit scan)
+        entry: scripts/pre-commit-orca-secrets.sh
+        language: script
+        # orca-cli inspects the staged changes itself; don't pass filenames.
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
