@@ -17,3 +17,7 @@ PyJWT==1.7.1
 
 # ORCA-DEMO: SCA license – copyleft dependency (GPLv2+) for the OSS license policy demo.
 Unidecode==1.4.0
+
+# ORCA-DEMO: SCA (PR) – NEW vulnerable dependency: requests 2.25.1
+# CVE-2023-32681, CVE-2024-35195, CVE-2024-47081, CVE-2026-25645
+requests==2.25.1

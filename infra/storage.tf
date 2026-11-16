@@ -12,6 +12,7 @@ module "storage" {
 module "storage_reports" {
   source = "./modules/storage"
 
-  bucket_prefix      = "${var.name}-reports-"
-  encryption_enabled = true
+  bucket_prefix = "${var.name}-reports-"
+  # ORCA-DEMO: IaC (PR) – encryption DISABLED on the reports bucket
+  encryption_enabled = false
 }

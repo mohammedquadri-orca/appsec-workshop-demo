@@ -62,3 +62,13 @@ def register():
             (username, password_hash),
         )
     return jsonify(registered=username)
+
+
+@bp.get("/search")
+def search_users():
+    term = request.args.get("q", "")
+    # ORCA-DEMO: SAST (PR) – NEW SQL injection: f-string LIKE query built from user input
+    sql = f"SELECT id, username, email FROM users WHERE username LIKE '%{term}%' OR email LIKE '%{term}%'"
+    with get_conn() as conn:
+        rows = conn.execute(sql).fetchall()
+    return jsonify([{"id": r[0], "username": r[1], "email": r[2]} for r in rows])
