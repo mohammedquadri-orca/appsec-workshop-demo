@@ -1,0 +1,57 @@
+# Orca Shift Left via raw orca-cli commands.
+#
+# Same scans as orca-appsec.yml, but without the GitHub-specific actions.
+# This is the pattern to copy into Jenkins, CircleCI, GitLab CI, Azure
+# Pipelines, Bitbucket, etc.: install the CLI, export two env vars, run commands.
+#
+# orca-cli reads ORCA_SECURITY_API_TOKEN and ORCA_SECURITY_PROJECT_KEY from the
+# environment natively. `--exit-code 0` = warn-only; drop it (default 3) to block.
+
+name: Orca CLI (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORCA_CLI_VERSION: "1.135.1"
+  ORCA_SECURITY_API_TOKEN: ${{ secrets.ORCA_SECURITY_API_TOKEN }}
+  ORCA_SECURITY_PROJECT_KEY: ${{ vars.ORCA_PROJECT_KEY }}
+  IMAGE_NAME: orca-appsec-demo:cli
+
+jobs:
+  orca-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0              # git history for the secrets scan
+
+      - name: Install orca-cli
+        run: |
+          curl -sfL https://raw.githubusercontent.com/orcasecurity/orca-cli/main/install.sh \
+            | sh -s -- -b "$HOME/.local/bin" "$ORCA_CLI_VERSION"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: orca-cli version
+        run: orca-cli --version
+
+      - name: SAST
+        run: orca-cli --exit-code 0 --display-name "cli-sast-${GITHUB_REF_NAME}" sast scan --path app
+
+      - name: SCA (vulns, licenses, malicious packages)
+        run: orca-cli --exit-code 0 --display-name "cli-sca-${GITHUB_REF_NAME}" sca scan --path . --dependency-tree
+
+      - name: IaC
+        run: orca-cli --exit-code 0 --display-name "cli-iac-${GITHUB_REF_NAME}" iac scan --path infra,Dockerfile
+
+      - name: Secrets (working tree + git history)
+        run: orca-cli --exit-code 0 --display-name "cli-secrets-${GITHUB_REF_NAME}" secrets scan --path .
+
+      - name: Build image
+        run: docker build -t "$IMAGE_NAME" .
+
+      - name: Container image
+        run: orca-cli --exit-code 0 --display-name "cli-image-${GITHUB_REF_NAME}" image scan "$IMAGE_NAME"

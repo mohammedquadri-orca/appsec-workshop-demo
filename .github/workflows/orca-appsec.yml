@@ -1,0 +1,150 @@
+# Orca Shift Left – SAST, SCA, IaC, Secrets and Container Image scanning.
+#
+# Inputs below come from each action's action.yaml at the pinned tag
+# (the tag the floating `v1` currently points to).
+#
+# Prerequisites (see DEMO.md section A):
+#   - repo secret   ORCA_SECURITY_API_TOKEN  (Orca API token with the "Shift Left User" role)
+#   - repo variable ORCA_PROJECT_KEY         (Orca Shift Left project key)
+#
+# ── WARN-ONLY MODE ──────────────────────────────────────────────────────────
+# Every Orca step sets `exit_code: "0"`, so policy violations are reported
+# (annotations, SARIF, Orca Scan Logs) but never fail the job.
+#
+# To switch to BLOCKING mode, change each Orca step's exit_code, e.g.:
+#
+#        with:
+#          ...
+#  -       exit_code: "0"
+#  +       exit_code: "3"     # orca-cli default: non-zero on policy violation -> job fails
+#
+# Or remove the `exit_code` line entirely (defaults to 3). Whether a finding
+# FAILS is decided by the Shift Left policy in Orca (Warn vs Block), so you can
+# also keep exit_code and flip individual policies to Block in the Orca UI.
+# Then make the jobs required status checks in branch protection.
+# ────────────────────────────────────────────────────────────────────────────
+
+name: Orca AppSec
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orca-appsec-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ORCA_PROJECT_KEY: ${{ vars.ORCA_PROJECT_KEY }}
+  IMAGE_NAME: orca-appsec-demo:ci
+
+jobs:
+  sast:
+    name: Orca SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # upload SARIF to GitHub Code Scanning
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Orca SAST scan
+        id: orcasecurity_sast_scan
+        uses: orcasecurity/shiftleft-sast-action@v1.0.14
+        with:
+          api_token: ${{ secrets.ORCA_SECURITY_API_TOKEN }}
+          project_key: ${{ env.ORCA_PROJECT_KEY }}
+          path: "app"
+          format: "sarif"
+          output: "results/"          # -> results/sast.sarif
+          exit_code: "0"              # WARN-ONLY (see header)
+          display_name: "gha-sast-${{ github.event_name }}-${{ github.ref_name }}"
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v4.39.3
+        if: ${{ always() && steps.orcasecurity_sast_scan.outputs.exit_code != 1 }}
+        with:
+          sarif_file: results/sast.sarif
+          category: orca-sast
+
+  sca:
+    name: Orca SCA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Orca SCA scan (vulns, licenses, malicious packages)
+        id: orcasecurity_sca_scan
+        uses: orcasecurity/shiftleft-sca-action@v1.0.0
+        with:
+          api_token: ${{ secrets.ORCA_SECURITY_API_TOKEN }}
+          project_key: ${{ env.ORCA_PROJECT_KEY }}
+          path: "."
+          security_checks: "vulns,license,malicious"
+          dependency_tree: "true"
+          exit_code: "0"              # WARN-ONLY (see header)
+          display_name: "gha-sca-${{ github.event_name }}-${{ github.ref_name }}"
+
+  iac:
+    name: Orca IaC
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Orca IaC scan (Terraform + Dockerfile)
+        id: orcasecurity_iac_scan
+        uses: orcasecurity/shiftleft-iac-action@v.1.5.12   # sic: Orca's tag name has a dot after "v"
+        with:
+          api_token: ${{ secrets.ORCA_SECURITY_API_TOKEN }}
+          project_key: ${{ env.ORCA_PROJECT_KEY }}
+          path: "infra,Dockerfile"
+          exit_code: "0"              # WARN-ONLY (see header)
+          display_name: "gha-iac-${{ github.event_name }}-${{ github.ref_name }}"
+
+  secrets:
+    name: Orca Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0              # required for the git-history secret scan
+
+      - name: Orca Secret Detection (incl. git history)
+        id: orcasecurity_secrets_scan
+        uses: orcasecurity/shiftleft-secrets-action@v1.0.6
+        with:
+          api_token: ${{ secrets.ORCA_SECURITY_API_TOKEN }}
+          project_key: ${{ env.ORCA_PROJECT_KEY }}
+          path: "."
+          exit_code: "0"              # WARN-ONLY (see header)
+
+  image:
+    name: Orca Container Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg REPO_URL="${{ github.server_url }}/${{ github.repository }}" \
+            --build-arg GIT_SHA="${{ github.sha }}" \
+            -t "$IMAGE_NAME" .
+
+      - name: Orca container image scan
+        id: orcasecurity_container_image_scan
+        uses: orcasecurity/shiftleft-container-image-action@v1.0.6
+        with:
+          api_token: ${{ secrets.ORCA_SECURITY_API_TOKEN }}
+          project_key: ${{ env.ORCA_PROJECT_KEY }}
+          image: ${{ env.IMAGE_NAME }}
+          exit_code: "0"              # WARN-ONLY (see header)
+          display_name: "gha-image-${{ github.event_name }}-${{ github.ref_name }}"
