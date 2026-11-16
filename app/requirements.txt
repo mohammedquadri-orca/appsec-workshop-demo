@@ -1,0 +1,19 @@
+# Web stack – pinned to versions with no known vulnerabilities (pip-audit, 2026-11-16)
+Flask==3.1.3
+Werkzeug==3.1.9
+Jinja2==3.1.6
+MarkupSafe==3.0.4
+itsdangerous==2.2.0
+click==8.5.1
+blinker==1.9.0
+
+# ORCA-DEMO: SCA – REACHABLE vulnerable package. CVE-2020-14343 (fixed in 5.4).
+# Imported in app/routes.py and called via yaml.load() on the /import route.
+PyYAML==5.3.1
+
+# ORCA-DEMO: SCA – UNREACHABLE vulnerable package. CVE-2022-29217 (+ later PyJWT CVEs).
+# Installed but never imported anywhere in the codebase.
+PyJWT==1.7.1
+
+# ORCA-DEMO: SCA license – copyleft dependency (GPLv2+) for the OSS license policy demo.
+Unidecode==1.4.0

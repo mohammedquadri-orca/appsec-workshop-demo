@@ -1,0 +1,27 @@
+# Local tooling / editor config (never commit)
+.claude/
+.mcp.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+app/data/*.db
+
+# Real env files (only .env.example is committed, and it holds FAKE values)
+.env
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+infra/terraform.tfvars
+infra/bootstrap/terraform.tfvars
+infra/backend.hcl
+
+# Scan output
+results/
+orca-results/
