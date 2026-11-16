@@ -2,10 +2,9 @@
 # Post a deployment notification to Slack.
 set -euo pipefail
 
-# ORCA-DEMO: Secret (history) – FAKE Slack bot token. It is removed in the very next
-# commit; Orca still detects it from git history with label
-# shiftleft:secret_detection:only_in_history
-SLACK_BOT_TOKEN="xoxb-578167102771-0842384935463-JYLIdjamOMWCcy07PUAjWMcZ"
+# Token now comes from the environment. The previously hardcoded (FAKE) token
+# is still in git history – see DEMO.md "Secrets history".
+: "${SLACK_BOT_TOKEN:?SLACK_BOT_TOKEN must be set}"
 CHANNEL="${SLACK_CHANNEL:-#orca-demo-deploys}"
 MESSAGE="${1:-orca-appsec-demo deployed}"
 
