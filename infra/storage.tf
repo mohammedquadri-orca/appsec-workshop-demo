@@ -4,9 +4,8 @@
 module "storage" {
   source = "./modules/storage"
 
-  bucket_prefix = "${var.name}-data-"
-  # ORCA-DEMO: IaC – data bucket created WITHOUT server-side encryption configuration
-  encryption_enabled = false
+  bucket_prefix      = "${var.name}-data-"
+  encryption_enabled = true # Fixed: SSE-S3 default encryption
 }
 
 module "storage_reports" {

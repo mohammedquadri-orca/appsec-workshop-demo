@@ -7,13 +7,11 @@ itsdangerous==2.2.0
 click==8.5.1
 blinker==1.9.0
 
-# ORCA-DEMO: SCA – REACHABLE vulnerable package. CVE-2020-14343 (fixed in 5.4).
-# Imported in app/routes.py and called via yaml.load() on the /import route.
-PyYAML==5.3.1
+# Fixed: bumped past CVE-2020-14343
+PyYAML==6.0.3
 
-# ORCA-DEMO: SCA – UNREACHABLE vulnerable package. CVE-2022-29217 (+ later PyJWT CVEs).
-# Installed but never imported anywhere in the codebase.
-PyJWT==1.7.1
+# Fixed: bumped past CVE-2022-29217 and later PyJWT CVEs
+PyJWT==2.15.1
 
 # ORCA-DEMO: SCA license – copyleft dependency (GPLv2+) for the OSS license policy demo.
 Unidecode==1.4.0

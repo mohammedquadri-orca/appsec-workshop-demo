@@ -30,5 +30,5 @@ app = create_app()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8080"))
-    # ORCA-DEMO: SAST – hardcoded Flask debug mode (Werkzeug debugger enabled)
-    app.run(host="0.0.0.0", port=port, debug=True)
+    # Fixed: debug mode is opt-in via env and off by default
+    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG") == "1")
