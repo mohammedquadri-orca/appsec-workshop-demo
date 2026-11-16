@@ -1,0 +1,12 @@
+.git
+.github
+.claude
+.mcp.json
+infra
+scripts
+config
+results
+orca-results
+**/__pycache__
+app/data
+*.md
